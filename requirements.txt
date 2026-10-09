@@ -1,4 +1,5 @@
 agent-detector==2.0.0
+alembic==1.20.0
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
@@ -20,6 +21,7 @@ httpx==0.28.1
 idna==3.20
 iniconfig==2.3.1
 Jinja2==3.1.6
+Mako==1.4.3
 markdown-it-py==4.2.0
 MarkupSafe==3.0.4
 mdurl==0.1.2
@@ -34,6 +36,8 @@ opentelemetry-semantic-conventions==0.66b1
 packaging==26.3
 pluggy==1.6.0
 protobuf==7.36.2
+psycopg==3.3.6
+psycopg-binary==3.3.6
 pydantic==2.13.5
 pydantic-extra-types==2.11.1
 pydantic-settings==2.15.0
@@ -49,6 +53,7 @@ rich-toolkit==0.20.5
 rignore==0.8.1
 sentry-sdk==2.71.0
 shellingham==1.5.4
+SQLAlchemy==2.1.4
 starlette==1.7.0
 typer==0.27.3
 typing-inspection==0.4.4
