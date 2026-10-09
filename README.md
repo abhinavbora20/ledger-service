@@ -29,7 +29,7 @@ python -m pytest -v
 
 - [x] Health endpoint and tests
 - [x] PostgreSQL schema (accounts, transactions, ledger entries)
-- [ ] Transfers with database transactions and locking
+- [x] Transfers with database transactions and locking
 - [ ] JWT authentication and idempotency keys
 - [ ] Docker, CI, deployment, benchmarks
 
@@ -46,3 +46,37 @@ alembic upgrade head
 - `alembic upgrade head` applies all migrations to the database in `DATABASE_URL` (default: local `ledger_dev`).
 - `alembic downgrade base` removes everything; `alembic current` shows the applied revision.
 - Tests use the separate `ledger_test` database. The test run rebuilds its schema from the migrations, so every test run also checks that the migrations work.
+
+## API
+
+Start the server and open the interactive docs at http://127.0.0.1:8000/docs.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/accounts` | Create an account (`name`, 3-letter uppercase `currency`) |
+| GET | `/accounts/{id}` | Read an account and its balance |
+| POST | `/accounts/{id}/deposits` | Deposit money from outside the system |
+| POST | `/transfers` | Move money between two accounts of the same currency |
+| GET | `/health` | Liveness check |
+
+Amounts are **integers in minor units** (for example paise): `100000` means 1000.00. Strings and decimals are rejected.
+
+Errors return a JSON body with a machine-readable `code`:
+
+| Status | Code | Meaning |
+|---|---|---|
+| 404 | `account_not_found` | An account does not exist |
+| 409 | `insufficient_funds` | The source balance is too low |
+| 422 | `invalid_amount`, `same_account`, `currency_mismatch` | The request cannot be processed |
+
+## Design notes
+
+- **Double-entry:** every transaction has entries that sum to zero; balances are computed from entries, never stored.
+- **Concurrency:** transfers lock both account rows (`SELECT ... FOR UPDATE`) in id order, which prevents overdrawing under concurrent requests and prevents deadlocks between opposite transfers. Both are covered by tests that force the race.
+- **Deposits** come from a per-currency `External` system account that is allowed to go negative.
+
+## Known limitations
+
+- No authentication yet (planned next).
+- Every deposit in a currency locks the same `External` account row, so deposits in one currency are serialized.
+- Two simultaneous first-ever deposits in a currency could create two `External` accounts; the ledger still balances.
