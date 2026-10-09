@@ -10,6 +10,7 @@ from app.ledger import (
     LedgerError,
     SameAccount,
 )
+from app.idempotency import IdempotencyKeyReused
 from app.routes import router
 from app.users import (
     AuthError,
@@ -29,6 +30,7 @@ ERROR_RESPONSES = {
     InvalidAmount: (422, "invalid_amount"),
     SameAccount: (422, "same_account"),
     CurrencyMismatch: (422, "currency_mismatch"),
+    IdempotencyKeyReused: (422, "idempotency_key_reused"),
 }
 
 AUTH_ERROR_RESPONSES = {
