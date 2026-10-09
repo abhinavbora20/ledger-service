@@ -32,7 +32,7 @@ def get_balance(session: Session, account_id: int) -> int:
     total = session.scalar(
         select(func.sum(LedgerEntry.amount)).where(LedgerEntry.account_id == account_id)
     )
-    return total or 0
+    return int(total or 0)
 
 
 def lock_account(session: Session, account_id: int) -> Account | None:
@@ -91,3 +91,27 @@ def transfer(
     )
     session.flush()
     return transaction
+
+
+def get_external_account(session: Session, currency: str) -> Account:
+    """The system account that deposits come from, one per currency."""
+    name = f"External {currency}"
+    account = session.scalar(
+        select(Account).where(Account.name == name, Account.allow_negative.is_(True))
+    )
+    if account is None:
+        account = Account(name=name, currency=currency, allow_negative=True)
+        session.add(account)
+        session.flush()
+    return account
+
+
+def deposit(session: Session, account_id: int, amount: int) -> Transaction:
+    """Credit an account with money coming from outside the system."""
+    if amount <= 0:
+        raise InvalidAmount("amount must be a positive integer")
+    account = session.get(Account, account_id)
+    if account is None:
+        raise AccountNotFound("account does not exist")
+    external = get_external_account(session, account.currency)
+    return transfer(session, external.id, account.id, amount, "deposit")

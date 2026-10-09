@@ -47,3 +47,23 @@ def session(engine):
     db_session.close()
     transaction.rollback()
     connection.close()
+
+
+@pytest.fixture
+def client(session):
+    """A test client whose requests use the rollback-protected test session."""
+    from fastapi.testclient import TestClient
+
+    from app.deps import get_session
+    from app.main import app
+
+    def override_get_session():
+        try:
+            yield session
+        finally:
+            # Mimic production, where closing the session discards uncommitted work.
+            session.rollback()
+
+    app.dependency_overrides[get_session] = override_get_session
+    yield TestClient(app)
+    app.dependency_overrides.clear()
