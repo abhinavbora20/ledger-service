@@ -114,3 +114,16 @@ Known gaps (not yet addressed):
 Keys are scoped per user. The key row is written in the **same database transaction** as the ledger entries, so they commit or roll back together; a unique constraint on `(user_id, key)` makes concurrent duplicates wait on each other instead of both running.
 
 Not yet handled: keys are never deleted (a real system expires them after a retention period), and the header is optional, so clients that omit it get no protection.
+
+## Run with Docker
+
+```bash
+cp .env.example .env        # then edit .env and set real values
+docker compose up --build -d
+./scripts/smoke_test.sh     # end-to-end check against the running stack
+docker compose down         # stop; data stays in a named volume
+```
+
+Three services start in order: `db` (PostgreSQL 16, healthchecked), `migrate` (runs `alembic upgrade head` once and exits), and `api` (starts after the migration succeeds). The database port is not published to the host. The image runs as a non-root user and contains no secrets; they are passed as environment variables.
+
+Known limitations: the image installs everything in `requirements.txt`, including test tools (a runtime/dev split would make it smaller), and the base image tag is not pinned to a digest.
