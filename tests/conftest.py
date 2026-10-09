@@ -13,6 +13,9 @@ TEST_DATABASE_URL = os.environ.get(
 )
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Tokens in tests are signed with this throwaway secret (set before any app code runs).
+os.environ.setdefault("JWT_SECRET", "test-only-secret-never-use-in-production-0123456789")
+
 
 def run_alembic(*args):
     env = {**os.environ, "DATABASE_URL": TEST_DATABASE_URL}
