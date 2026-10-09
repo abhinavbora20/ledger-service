@@ -92,3 +92,14 @@ def test_currency_mismatch_is_rejected(session):
     usd = make_account(session, "Bob", currency="USD")
     with pytest.raises(CurrencyMismatch):
         transfer(session, inr.id, usd.id, 100, "mixed currencies")
+
+
+def test_get_balance_returns_a_plain_int(session):
+    external = make_account(session, "External", allow_negative=True)
+    alice = make_account(session, "Alice")
+    transfer(session, external.id, alice.id, 500, "deposit")
+
+    balance = get_balance(session, alice.id)
+
+    assert type(balance) is int
+    assert balance == 500
