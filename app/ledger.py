@@ -35,6 +35,15 @@ def get_balance(session: Session, account_id: int) -> int:
     return total or 0
 
 
+def lock_account(session: Session, account_id: int) -> Account | None:
+    """Fetch an account row and lock it (SELECT ... FOR UPDATE).
+
+    Any other transaction that tries to lock the same row waits until
+    this transaction commits or rolls back.
+    """
+    return session.get(Account, account_id, with_for_update=True)
+
+
 def transfer(
     session: Session,
     from_account_id: int,
@@ -51,15 +60,22 @@ def transfer(
     if from_account_id == to_account_id:
         raise SameAccount("cannot transfer to the same account")
 
-    source = session.get(Account, from_account_id)
-    destination = session.get(Account, to_account_id)
+    # Lock both rows in a fixed order (lowest id first) so two opposite
+    # transfers can never wait on each other in a circle (deadlock).
+    first_id, second_id = sorted((from_account_id, to_account_id))
+    locked = {
+        first_id: lock_account(session, first_id),
+        second_id: lock_account(session, second_id),
+    }
+    source = locked[from_account_id]
+    destination = locked[to_account_id]
     if source is None or destination is None:
         raise AccountNotFound("source or destination account does not exist")
     if source.currency != destination.currency:
         raise CurrencyMismatch("accounts have different currencies")
 
-    # NAIVE VERSION: check the balance, then write. Not safe under concurrency.
-    # We will prove that in 1.4b and fix it.
+    # Safe: both rows stay locked until the caller commits or rolls back, so no
+    # other transfer can change these balances between this check and the writes.
     if not source.allow_negative and get_balance(session, source.id) < amount:
         raise InsufficientFunds("balance is too low for this transfer")
 
