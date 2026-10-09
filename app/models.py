@@ -25,6 +25,9 @@ class Account(Base):
     name: Mapped[str] = mapped_column(Text)
     currency: Mapped[str] = mapped_column(CHAR(3))
     allow_negative: Mapped[bool] = mapped_column(Boolean, server_default=false())
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", name="fk_accounts_user_id_users"), index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -52,6 +55,17 @@ class LedgerEntry(Base):
     )
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), index=True)
     amount: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    email: Mapped[str] = mapped_column(Text, unique=True)
+    password_hash: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
