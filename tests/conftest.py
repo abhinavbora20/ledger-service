@@ -42,7 +42,7 @@ def engine():
 def session(engine):
     connection = engine.connect()
     transaction = connection.begin()
-    db_session = Session(bind=connection)
+    db_session = Session(bind=connection, join_transaction_mode="create_savepoint")
     yield db_session
     db_session.close()
     transaction.rollback()
