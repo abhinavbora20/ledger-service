@@ -28,7 +28,21 @@ python -m pytest -v
 ## Roadmap
 
 - [x] Health endpoint and tests
-- [ ] PostgreSQL schema (accounts, transactions, ledger entries)
+- [x] PostgreSQL schema (accounts, transactions, ledger entries)
 - [ ] Transfers with database transactions and locking
 - [ ] JWT authentication and idempotency keys
 - [ ] Docker, CI, deployment, benchmarks
+
+## Database and migrations
+
+Requires PostgreSQL 16 running locally.
+
+```bash
+createdb ledger_dev
+createdb ledger_test
+alembic upgrade head
+```
+
+- `alembic upgrade head` applies all migrations to the database in `DATABASE_URL` (default: local `ledger_dev`).
+- `alembic downgrade base` removes everything; `alembic current` shows the applied revision.
+- Tests use the separate `ledger_test` database. The test run rebuilds its schema from the migrations, so every test run also checks that the migrations work.
