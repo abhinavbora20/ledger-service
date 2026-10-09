@@ -53,7 +53,7 @@ def session(engine):
 
 
 @pytest.fixture
-def client(session):
+def anon_client(session):
     """A test client whose requests use the rollback-protected test session."""
     from fastapi.testclient import TestClient
 
@@ -70,3 +70,28 @@ def client(session):
     app.dependency_overrides[get_session] = override_get_session
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def register_and_login(anon_client):
+    """Returns a function that registers a user and returns their auth headers."""
+
+    def _register_and_login(email, password="a-long-password-1"):
+        response = anon_client.post(
+            "/auth/register", json={"email": email, "password": password}
+        )
+        assert response.status_code == 201, response.text
+        response = anon_client.post(
+            "/auth/login", json={"email": email, "password": password}
+        )
+        assert response.status_code == 200, response.text
+        return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+    return _register_and_login
+
+
+@pytest.fixture
+def client(anon_client, register_and_login):
+    """A test client already logged in as alice@example.com."""
+    anon_client.headers.update(register_and_login("alice@example.com"))
+    return anon_client

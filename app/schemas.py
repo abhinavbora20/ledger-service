@@ -33,3 +33,23 @@ class TransferIn(BaseModel):
 class TransactionOut(BaseModel):
     id: int
     description: str
+
+
+class RegisterIn(BaseModel):
+    email: str = Field(max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=10, max_length=128)
+
+
+class LoginIn(BaseModel):
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=128)
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

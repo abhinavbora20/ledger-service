@@ -80,3 +80,21 @@ Errors return a JSON body with a machine-readable `code`:
 - No authentication yet (planned next).
 - Every deposit in a currency locks the same `External` account row, so deposits in one currency are serialized.
 - Two simultaneous first-ever deposits in a currency could create two `External` accounts; the ledger still balances.
+
+## Security notes
+
+Implemented and tested:
+- **Broken access control:** every account endpoint checks ownership; another user's account returns `404` (tests try reading, depositing into, and spending from someone else's account).
+- **Password storage:** Argon2id hashes with per-password salts; the login path takes similar time for unknown emails and wrong passwords.
+- **Tokens:** short-lived (30 minutes) signed JWTs; decoding pins the algorithm and requires `exp` and `sub`; tampered, expired, unsigned, and wrongly-signed tokens are tested.
+- **Injection:** all database access goes through SQLAlchemy with bound parameters; no SQL is built from user input.
+- **Input validation:** strict integer amounts, length limits, and format checks at the schema layer.
+- **Secrets:** the signing key is read from the environment (`.env` is git-ignored).
+
+Known gaps (not yet addressed):
+- No rate limiting or lockout on login, so password guessing is not throttled.
+- Tokens cannot be revoked before they expire; there are no refresh tokens.
+- `POST /accounts/{id}/deposits` lets any owner create money; in a real system deposits would come from a payment provider, not a user-facing endpoint.
+- Registration reveals whether an email is already registered.
+- No audit log of logins or transfers.
+- HTTPS is required in any real deployment; the local dev server uses plain HTTP.
