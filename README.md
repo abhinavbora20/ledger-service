@@ -30,7 +30,7 @@ python -m pytest -v
 - [x] Health endpoint and tests
 - [x] PostgreSQL schema (accounts, transactions, ledger entries)
 - [x] Transfers with database transactions and locking
-- [ ] JWT authentication and idempotency keys
+- [x] JWT authentication and idempotency keys
 - [ ] Docker, CI, deployment, benchmarks
 
 ## Database and migrations
@@ -98,3 +98,19 @@ Known gaps (not yet addressed):
 - Registration reveals whether an email is already registered.
 - No audit log of logins or transfers.
 - HTTPS is required in any real deployment; the local dev server uses plain HTTP.
+
+## Idempotency
+
+`POST /transfers` and `POST /accounts/{id}/deposits` accept an optional `Idempotency-Key` header (any unique string up to 255 characters, typically a UUID). Retrying with the same key never repeats the money movement:
+
+| Situation | Result |
+|---|---|
+| New key | The request runs; its response is saved |
+| Same key, same request | The saved response is returned with `Idempotent-Replayed: true` |
+| Same key, different request | `422` with code `idempotency_key_reused` |
+| Two identical requests at the same moment | One runs; the other waits and receives the same response |
+| Request failed (for example insufficient funds) | Nothing is saved, so a retry runs again |
+
+Keys are scoped per user. The key row is written in the **same database transaction** as the ledger entries, so they commit or roll back together; a unique constraint on `(user_id, key)` makes concurrent duplicates wait on each other instead of both running.
+
+Not yet handled: keys are never deleted (a real system expires them after a retention period), and the header is optional, so clients that omit it get no protection.

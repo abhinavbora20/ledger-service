@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Response
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_session
+from app.idempotency import fingerprint, run_idempotent
 from app.ledger import AccountNotFound, deposit, get_balance, transfer
 from app.models import Account, User
 from app.schemas import (
@@ -61,12 +62,25 @@ def read_account(
 def deposit_money(
     account_id: int,
     body: DepositIn,
+    response: Response,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=255),
 ):
-    get_account_for_user(session, account_id, current_user)
-    transaction = deposit(session, account_id, body.amount)
-    result = TransactionOut(id=transaction.id, description=transaction.description)
+    def work() -> dict:
+        get_account_for_user(session, account_id, current_user)
+        transaction = deposit(session, account_id, body.amount)
+        return {"id": transaction.id, "description": transaction.description}
+
+    result, replayed = run_idempotent(
+        session,
+        current_user.id,
+        idempotency_key,
+        fingerprint("deposit", account_id=account_id, amount=body.amount),
+        work,
+    )
+    if replayed:
+        response.headers["Idempotent-Replayed"] = "true"
     session.commit()
     return result
 
@@ -74,18 +88,37 @@ def deposit_money(
 @router.post("/transfers", response_model=TransactionOut, status_code=201)
 def create_transfer(
     body: TransferIn,
+    response: Response,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
+    idempotency_key: str | None = Header(default=None, min_length=1, max_length=255),
 ):
-    # The money can only leave an account the caller owns.
-    get_account_for_user(session, body.from_account_id, current_user)
-    transaction = transfer(
+    def work() -> dict:
+        # The money can only leave an account the caller owns.
+        get_account_for_user(session, body.from_account_id, current_user)
+        transaction = transfer(
+            session,
+            body.from_account_id,
+            body.to_account_id,
+            body.amount,
+            body.description,
+        )
+        return {"id": transaction.id, "description": transaction.description}
+
+    result, replayed = run_idempotent(
         session,
-        body.from_account_id,
-        body.to_account_id,
-        body.amount,
-        body.description,
+        current_user.id,
+        idempotency_key,
+        fingerprint(
+            "transfer",
+            from_account_id=body.from_account_id,
+            to_account_id=body.to_account_id,
+            amount=body.amount,
+            description=body.description,
+        ),
+        work,
     )
-    result = TransactionOut(id=transaction.id, description=transaction.description)
+    if replayed:
+        response.headers["Idempotent-Replayed"] = "true"
     session.commit()
     return result
