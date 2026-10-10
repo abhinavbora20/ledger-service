@@ -134,7 +134,6 @@ Known limitations: the image installs everything in `requirements.txt`, includin
 
 https://ledger-service-bi8t.onrender.com/docs (interactive API docs)
 
-![Interactive API docs on the live deployment](docs/images/api-docs.png)
 
 Deployed on Render (Docker web service, free tier) with a Neon Postgres database (free tier). Notes:
 
