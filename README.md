@@ -129,3 +129,28 @@ docker compose down         # stop; data stays in a named volume
 Three services start in order: `db` (PostgreSQL 16, healthchecked), `migrate` (runs `alembic upgrade head` once and exits), and `api` (starts after the migration succeeds). The database port is not published to the host. The image runs as a non-root user and contains no secrets; they are passed as environment variables.
 
 Known limitations: the image installs everything in `requirements.txt`, including test tools (a runtime/dev split would make it smaller), and the base image tag is not pinned to a digest.
+
+## Live demo
+
+https://ledger-service-bi8t.onrender.com/docs (interactive API docs)
+
+
+Deployed on Render (Docker web service, free tier) with a Neon Postgres database (free tier). Notes:
+
+- The free web service sleeps after 15 minutes without traffic and the free database suspends when idle, so the first request after a quiet period can take about a minute.
+- It is a demo: use fake data only. Registration is open and there is no rate limiting yet.
+- Configuration is through environment variables: `DATABASE_URL` and `JWT_SECRET`. No secrets are stored in the repository or the image.
+- Database migrations are currently run manually (`alembic upgrade head` against the database); automating this is a planned improvement.
+- Deploys are triggered by merges to `main`, gated on CI passing.
+
+## Live demo
+
+https://ledger-service-bi8t.onrender.com/docs (interactive API docs)
+
+Deployed on Render (Docker web service, free tier) with a Neon Postgres database (free tier). Notes:
+
+- The free web service sleeps after 15 minutes without traffic and the free database suspends when idle, so the first request after a quiet period can take about a minute.
+- It is a demo: use fake data only. Registration is open and there is no rate limiting yet.
+- Configuration is through environment variables: `DATABASE_URL` and `JWT_SECRET`. No secrets are stored in the repository or the image.
+- Database migrations are currently run manually (`alembic upgrade head` against the database); automating this is a planned improvement.
+- Deploys are triggered by merges to `main`, gated on CI passing.
