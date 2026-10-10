@@ -1,5 +1,7 @@
 # Ledger Service
 
+[![CI](https://github.com/abhinavbora20/ledger-service/actions/workflows/ci.yml/badge.svg)](https://github.com/abhinavbora20/ledger-service/actions/workflows/ci.yml)
+
 A double-entry ledger and transaction API built with FastAPI and PostgreSQL.
 
 **Status:** early development. Only the `/health` endpoint exists so far.
