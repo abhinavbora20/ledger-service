@@ -1,0 +1,4 @@
+services:
+  api:
+    environment:
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
