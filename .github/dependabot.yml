@@ -8,3 +8,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # pydantic pins an exact pydantic-core version, so the two must move together.
+      pydantic:
+        patterns:
+          - "pydantic"
+          - "pydantic-core"
