@@ -33,7 +33,7 @@ python -m pytest -v
 - [x] PostgreSQL schema (accounts, transactions, ledger entries)
 - [x] Transfers with database transactions and locking
 - [x] JWT authentication and idempotency keys
-- [ ] Docker, CI, deployment, benchmarks
+- [x] Docker, CI, deployment, benchmarks
 
 ## Database and migrations
 
@@ -141,3 +141,15 @@ Deployed on Render (Docker web service, free tier) with a Neon Postgres database
 - Configuration is through environment variables: `DATABASE_URL` and `JWT_SECRET`. No secrets are stored in the repository or the image.
 - Database migrations are currently run manually (`alembic upgrade head` against the database); automating this is a planned improvement.
 - Deploys are triggered by merges to `main`, gated on CI passing.
+
+## Performance (measured)
+
+Measured with k6 at 10 concurrent users on a MacBook Air M2 (the load generator and the server on the same machine, local docker compose stack, PostgreSQL 16). Medians of three runs; full conditions, ranges, and raw output are in [benchmarks/README.md](benchmarks/README.md).
+
+| Scenario | 1 API worker | 4 API workers |
+|---|---|---|
+| Read a balance | 610 requests/s, p95 22.9 ms | 1546 requests/s, p95 9.4 ms |
+| Transfer, different accounts | 330 requests/s, p95 39.1 ms | 579 requests/s, p95 28.8 ms |
+| Transfer, same two accounts | 364 requests/s, p95 35.4 ms | 367 requests/s, p95 36.4 ms |
+
+Same-account transfers do not scale with workers because the row locks serialize them; the same applies to deposits in one currency (they share a system account). The default is 1 worker; set `WEB_CONCURRENCY` to change it.
